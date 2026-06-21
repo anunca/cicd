@@ -1,0 +1,15 @@
+# http:
+#   routers:
+#     traefik:
+#       rule: "Host(`traefik.app.internal`)"
+#       service: "api@internal"
+#       tls:
+#         domains:
+#           - main: "app.internal"
+#             sans:
+#               - "*.app.internal"
+
+tls:
+  certificates:
+    - certFile: "/etc/certs/app.internal.crt"
+      keyFile: "/etc/certs/app.internal.key"

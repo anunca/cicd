@@ -1,0 +1,42 @@
+services:
+  gitlab:
+    image: $GITLAB_VERSION
+    restart: always
+    hostname: 'gitlab.${DOMAIN_NAME}'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.${DOMAIN_NAME}'
+        gitlab_rails['gitlab_shell_ssh_port'] = 22
+        gitlab_rails['lfs_enabled'] = false
+    volumes:
+      - data_etc:/etc/gitlab
+      - data_log:/var/log/gitlab
+      - data_opt:/var/opt/gitlab
+    ports:
+      - 80
+      - 443
+      - 22
+    networks:
+      - cicd
+    labels:
+      traefik.enable: true
+      traefik.http.routers.gitlab.entrypoints: web
+      traefik.http.routers.gitlab.rule: Host(`gitlab.$DOMAIN_NAME`)
+      traefik.http.routers.gitlab.service: gitlab
+      traefik.http.services.gitlab.loadbalancer.server.port: 80
+      traefik.http.routers.gitlab-ssl.entrypoints: websecure
+      traefik.http.routers.gitlab-ssl.rule: Host(`gitlab.$DOMAIN_NAME`)
+      traefik.http.routers.gitlab-ssl.service: gitlab
+      traefik.http.services.gitlab-ssl.loadbalancer.server.port: 80
+      traefik.http.routers.gitlab-ssl.tls: true
+      traefik.tcp.routers.gitlab-ssh.entrypoints: ssh
+      traefik.tcp.routers.gitlab-ssh.rule: HostSNI(`*`)
+      traefik.tcp.routers.gitlab-ssh.service: gitlab-ssh-svc
+      traefik.tcp.services.gitlab-ssh-svc.loadbalancer.server.port: 22
+volumes:
+  data_etc:
+  data_log:
+  data_opt:
+networks:
+  cicd:
+    external: true # name: cicd

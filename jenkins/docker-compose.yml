@@ -1,0 +1,39 @@
+services:
+  jenkins:
+    image: $JENKINS_VERSION
+    # image: registry.$DOMAIN_NAME/jenkins
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        JENKINS_VERSION:
+        JAVA_OPTS:
+        JENKINS_USER:
+        JENKINS_PASS:
+    restart: always
+    # privileged: true
+    # group_add:
+    #   - 0
+    ports:
+      - 8080
+    volumes:
+      - data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - cicd
+    labels:
+      traefik.enable: true
+      traefik.http.routers.jenkins.entrypoints: web
+      traefik.http.routers.jenkins.rule: Host(`jenkins.$DOMAIN_NAME`)
+      traefik.http.routers.jenkins.service: jenkins
+      traefik.http.services.jenkins.loadbalancer.server.port: 8080
+      traefik.http.routers.jenkins-ssl.entrypoints: websecure
+      traefik.http.routers.jenkins-ssl.rule: Host(`jenkins.$DOMAIN_NAME`)
+      traefik.http.routers.jenkins-ssl.service: jenkins
+      traefik.http.services.jenkins-ssl.loadbalancer.server.port: 8080
+      traefik.http.routers.jenkins-ssl.tls: true
+volumes:
+  data:
+networks:
+  cicd:
+    external: true # name: cicd
