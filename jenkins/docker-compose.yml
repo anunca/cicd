@@ -24,11 +24,11 @@ services:
     labels:
       traefik.enable: true
       traefik.http.routers.jenkins.entrypoints: web
-      traefik.http.routers.jenkins.rule: Host(`jenkins.$DOMAIN_NAME`)
+      traefik.http.routers.jenkins.rule: Host(`$REGISTRY`)
       traefik.http.routers.jenkins.service: jenkins
       traefik.http.services.jenkins.loadbalancer.server.port: 8080
       traefik.http.routers.jenkins-ssl.entrypoints: websecure
-      traefik.http.routers.jenkins-ssl.rule: Host(`jenkins.$DOMAIN_NAME`)
+      traefik.http.routers.jenkins-ssl.rule: Host(`$REGISTRY`)
       traefik.http.routers.jenkins-ssl.service: jenkins
       traefik.http.services.jenkins-ssl.loadbalancer.server.port: 8080
       traefik.http.routers.jenkins-ssl.tls: true

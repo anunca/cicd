@@ -11,11 +11,11 @@ services:
     labels:
       traefik.enable: true
       traefik.http.routers.registry.entrypoints: web
-      traefik.http.routers.registry.rule: Host(`registry.$DOMAIN_NAME`)
+      traefik.http.routers.registry.rule: Host(`$REGISTRY`)
       traefik.http.routers.registry.service: registry
       traefik.http.services.registry.loadbalancer.server.port: 5000
       traefik.http.routers.registry-ssl.entrypoints: websecure
-      traefik.http.routers.registry-ssl.rule: Host(`registry.$DOMAIN_NAME`)
+      traefik.http.routers.registry-ssl.rule: Host(`$REGISTRY`)
       traefik.http.routers.registry-ssl.service: registry
       traefik.http.services.registry-ssl.loadbalancer.server.port: 5000
       traefik.http.routers.registry-ssl.tls: true

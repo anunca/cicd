@@ -22,11 +22,11 @@ services:
     labels:
       traefik.enable: true
       traefik.http.routers.gitea.entrypoints: web
-      traefik.http.routers.gitea.rule: Host(`gitea.$DOMAIN_NAME`)
+      traefik.http.routers.gitea.rule: Host(`$REGISTRY`)
       traefik.http.routers.gitea.service: gitea
       traefik.http.services.gitea.loadbalancer.server.port: 3000
       traefik.http.routers.gitea-ssl.entrypoints: websecure
-      traefik.http.routers.gitea-ssl.rule: Host(`gitea.$DOMAIN_NAME`)
+      traefik.http.routers.gitea-ssl.rule: Host(`$REGISTRY`)
       traefik.http.routers.gitea-ssl.service: gitea
       traefik.http.services.gitea-ssl.loadbalancer.server.port: 3000
       traefik.http.routers.gitea-ssl.tls: true
