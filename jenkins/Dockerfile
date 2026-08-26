@@ -16,7 +16,8 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s
 
 #jenkins
 COPY etc/plugins.txt /usr/share/jenkins/ref/plugins.txt
-RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/ref/plugins.txt
+# TODO
+# RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/ref/plugins.txt
 
 ARG JAVA_OPTS
 # ARG JENKINS_USER
