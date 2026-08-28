@@ -9,7 +9,7 @@ help h: ## Show help
 	} \
 	/^##@/ {printf "\n%s\n", substr($$0,5)}' $(MAKEFILE_LIST)
 
-SERVICES = gitea gitlab jenkins registry sonarqube traefik
+SERVICES = gitea jenkins registry sonarqube traefik
 
 dc = docker compose
 
