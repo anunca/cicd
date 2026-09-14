@@ -1,0 +1,253 @@
+name: ${COMPOSE_PROJECT_NAME:-cicd}
+
+services:
+  traefik:
+    image: traefik:${TRAEFIK_VERSION}
+    restart: unless-stopped
+    init: true
+    command:
+      - --configFile=/etc/traefik/traefik.yaml
+    ports:
+      - "80:80"
+      - "443:443"
+      - "22:22"
+    volumes:
+      - ./etc/traefik/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./etc/traefik/dynamic.yaml:/etc/traefik/dynamic.yaml:ro
+      - ./certs:/etc/traefik/certs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - cicd
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  gitea:
+    image: gitea/gitea:${GITEA_VERSION}
+    restart: unless-stopped
+    init: true
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__server__DOMAIN: ${GITEA_HOST}
+      GITEA__server__ROOT_URL: https://${GITEA_HOST}/
+      GITEA__server__SSH_DOMAIN: ${GITEA_HOST}
+      GITEA__server__SSH_PORT: "22"
+      GITEA__server__LFS_START_SERVER: "false"
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - cicd
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.gitea.rule: Host(`${GITEA_HOST}`)
+      traefik.http.routers.gitea.entrypoints: websecure
+      traefik.http.routers.gitea.tls: "true"
+      traefik.http.services.gitea.loadbalancer.server.port: "3000"
+      traefik.tcp.routers.gitea-ssh.rule: HostSNI(`*`)
+      traefik.tcp.routers.gitea-ssh.entrypoints: ssh
+      traefik.tcp.routers.gitea-ssh.service: gitea-ssh
+      traefik.tcp.services.gitea-ssh.loadbalancer.server.port: "22"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  registry:
+    image: registry:${REGISTRY_VERSION}
+    restart: unless-stopped
+    init: true
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry
+      REGISTRY_AUTH_HTPASSWD_PATH: /run/secrets/registry_htpasswd
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    volumes:
+      - registry-data:/var/lib/registry
+    secrets:
+      - registry_htpasswd
+    networks:
+      - cicd
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.registry.rule: Host(`${REGISTRY_HOST}`)
+      traefik.http.routers.registry.entrypoints: websecure
+      traefik.http.routers.registry.tls: "true"
+      traefik.http.services.registry.loadbalancer.server.port: "5000"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  jenkins-docker:
+    image: docker:${DOCKER_VERSION}-dind
+    profiles: [jenkins]
+    privileged: true
+    restart: unless-stopped
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - jenkins-docker-data:/var/lib/docker
+      - jenkins-docker-certs-ca:/certs/ca
+      - jenkins-docker-certs-client:/certs/client
+    networks:
+      - cicd
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+      args:
+        JENKINS_VERSION: ${JENKINS_VERSION}
+        DOCKER_VERSION: ${DOCKER_VERSION}
+        KUBECTL_VERSION: ${KUBECTL_VERSION}
+    image: cicd-jenkins:${JENKINS_VERSION}
+    profiles: [jenkins]
+    restart: unless-stopped
+    init: true
+    environment:
+      CASC_JENKINS_CONFIG: /usr/local/jenkins/jenkins.yaml
+      CASC_STRICT_SECRET_RESOLUTION: "true"
+      DOCKER_HOST: tcp://jenkins-docker:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: "1"
+      JENKINS_ADMIN_ID: ${JENKINS_ADMIN_ID}
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=false
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs-client:/certs/client:ro
+    secrets:
+      - jenkins_admin_password
+    networks:
+      - cicd
+    depends_on:
+      jenkins-docker:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.jenkins.rule: Host(`${JENKINS_HOST}`)
+      traefik.http.routers.jenkins.entrypoints: websecure
+      traefik.http.routers.jenkins.tls: "true"
+      traefik.http.services.jenkins.loadbalancer.server.port: "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/login >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  sonarqube-db:
+    image: postgres:${POSTGRES_VERSION}
+    profiles: [quality]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SONAR_DB_NAME}
+      POSTGRES_USER: ${SONAR_DB_USER}
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD}
+    volumes:
+      - sonarqube-db-data:/var/lib/postgresql/data
+    networks:
+      - sonarqube
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SONAR_DB_USER} -d ${SONAR_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  sonarqube:
+    image: sonarqube:${SONARQUBE_VERSION}
+    profiles: [quality]
+    restart: unless-stopped
+    init: true
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME}
+      SONAR_JDBC_USERNAME: ${SONAR_DB_USER}
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD}
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
+      - ./etc/sonarqube/sonar.properties:/opt/sonarqube/conf/sonar.properties:ro
+    networks:
+      - cicd
+      - sonarqube
+    depends_on:
+      sonarqube-db:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.sonarqube.rule: Host(`${SONARQUBE_HOST}`)
+      traefik.http.routers.sonarqube.entrypoints: websecure
+      traefik.http.routers.sonarqube.tls: "true"
+      traefik.http.services.sonarqube.loadbalancer.server.port: "9000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:9000/api/system/status >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  gitea-data:
+  registry-data:
+  jenkins-data:
+  jenkins-docker-data:
+  jenkins-docker-certs-ca:
+  jenkins-docker-certs-client:
+  sonarqube-db-data:
+  sonarqube-data:
+  sonarqube-logs:
+  sonarqube-extensions:
+
+networks:
+  cicd:
+    external: true
+    name: ${CICD_NETWORK}
+  sonarqube:
+    internal: true
+
+secrets:
+  jenkins_admin_password:
+    file: ./secrets/jenkins/admin_password
+  registry_htpasswd:
+    file: ./secrets/registry/htpasswd
