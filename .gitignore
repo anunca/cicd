@@ -1,4 +1,4 @@
-.env.local
+.env
 certs/*
 !certs/README.md
 secrets/*

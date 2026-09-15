@@ -1,0 +1,44 @@
+services:
+  gitea:
+    image: gitea/gitea:${GITEA_VERSION}
+    restart: unless-stopped
+    init: true
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__server__DOMAIN: ${GITEA_HOST}
+      GITEA__server__ROOT_URL: https://${GITEA_HOST}/
+      GITEA__server__SSH_DOMAIN: ${GITEA_HOST}
+      GITEA__server__SSH_PORT: "22"
+      GITEA__server__LFS_START_SERVER: "false"
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - cicd
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.gitea.rule: Host(`${GITEA_HOST}`)
+      traefik.http.routers.gitea.entrypoints: websecure
+      traefik.http.routers.gitea.tls: "true"
+      traefik.http.services.gitea.loadbalancer.server.port: "3000"
+      traefik.tcp.routers.gitea-ssh.rule: HostSNI(`*`)
+      traefik.tcp.routers.gitea-ssh.entrypoints: ssh
+      traefik.tcp.routers.gitea-ssh.service: gitea-ssh
+      traefik.tcp.services.gitea-ssh.loadbalancer.server.port: "22"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  gitea-data:
+
+networks:
+  cicd:
+    external: true
+    name: ${CICD_NETWORK}

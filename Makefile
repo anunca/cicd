@@ -2,17 +2,19 @@
 .DEFAULT_GOAL := help
 
 include .env
--include .env.local
 
 ENV ?= dev
 TAG ?= ${ENV}
 DOCKER_SHELL ?= bash
 
-dc = docker compose --env-file .env --env-file .env.local
-compose_files = compose.yaml
+dc_files = compose.traefik.yaml compose.gitea.yaml compose.registry.yaml compose.jenkins.yaml compose.sonarqube.yaml
+dc = docker compose --env-file .env $(foreach f,$(dc_files),-f $(f))
 
 export ENV
 export TAG
+
+.env: .env.local
+	cp .env.local .env
 
 help h: ## Show help
 	@awk 'BEGIN {FS = ":.*##"} \
@@ -23,6 +25,8 @@ help h: ## Show help
 	/^##@/ {printf "\n%s\n", substr($$0,5)}' $(MAKEFILE_LIST)
 
 ##@ Setup
+env e: .env ## Create runtime environment file
+
 setup se: network secrets.init certs ## Prepare local runtime files
 
 network n: ## Create CI/CD shared network
@@ -30,15 +34,12 @@ network n: ## Create CI/CD shared network
 
 secrets.init si: ## Generate local credentials
 	@mkdir -p secrets/jenkins secrets/registry
-	@test -f .env.local || { \
-		sonar_password=$$(openssl rand -hex 24); \
-		registry_password=$$(openssl rand -hex 24); \
-		printf 'SONAR_DB_PASSWORD=%s\nREGISTRY_USER=admin\nREGISTRY_PASSWORD=%s\n' \
-			"$$sonar_password" "$$registry_password" > .env.local; \
-	}
+	@grep -q '^SONAR_DB_PASSWORD=' .env || printf 'SONAR_DB_PASSWORD=%s\n' "$$(openssl rand -hex 24)" >> .env
+	@grep -q '^REGISTRY_USER=' .env || printf 'REGISTRY_USER=admin\n' >> .env
+	@grep -q '^REGISTRY_PASSWORD=' .env || printf 'REGISTRY_PASSWORD=%s\n' "$$(openssl rand -hex 24)" >> .env
 	@test -s secrets/jenkins/admin_password || openssl rand -base64 32 > secrets/jenkins/admin_password
 	@test -s secrets/registry/htpasswd || { \
-		set -a; . ./.env.local; set +a; \
+		set -a; . ./.env; set +a; \
 		docker run --rm --entrypoint htpasswd httpd:2.4-alpine \
 			-Bbn "$$REGISTRY_USER" "$$REGISTRY_PASSWORD" > secrets/registry/htpasswd; \
 	}
@@ -58,31 +59,31 @@ validate v: secrets.init ## Validate configuration
 	$(dc) config --quiet
 
 build b: secrets.init ## Build images
-	$(dc) --profile jenkins build
+	$(dc) build
 
 pull p: secrets.init ## Pull images
-	$(dc) --profile jenkins --profile quality pull
+	$(dc) pull
 
 start s: setup ## Start core services
-	$(dc) up -d
+	$(dc) up -d traefik gitea registry
 
 start.all sa: setup ## Start all services
-	$(dc) --profile jenkins --profile quality up -d
+	$(dc) up -d
 
 stop st: secrets.init ## Stop containers
-	$(dc) --profile jenkins --profile quality down
+	$(dc) down
 
 restart r: stop start ## Restart core services
 
 logs l: secrets.init ## Follow logs
-	$(dc) --profile jenkins --profile quality logs -f
+	$(dc) logs -f
 
 ps: secrets.init ## List containers
-	$(dc) --profile jenkins --profile quality ps -a
+	$(dc) ps -a
 
 ##@ Jenkins
 jenkins.start js: setup ## Start Jenkins
-	$(dc) --profile jenkins up -d jenkins
+	$(dc) up -d jenkins
 
 jenkins.shell jsh: secrets.init ## Open Jenkins shell
 	$(dc) exec jenkins $(DOCKER_SHELL)
@@ -95,14 +96,14 @@ jenkins.password jp: secrets.init ## Show initial Jenkins password
 
 ##@ SonarQube
 sonarqube.start ss: setup ## Start SonarQube
-	$(dc) --profile quality up -d sonarqube
+	$(dc) up -d sonarqube
 
 sonarqube.logs sl: secrets.init ## Follow SonarQube logs
 	$(dc) logs -f sonarqube
 
 ##@ Registry
 registry.login rl: secrets.init ## Log in to the Registry
-	@set -a; . ./.env.local; set +a; \
+	@set -a; . ./.env; set +a; \
 		printf '%s' "$$REGISTRY_PASSWORD" | \
 		docker login "$(REGISTRY_HOST)" --username "$$REGISTRY_USER" --password-stdin
 
