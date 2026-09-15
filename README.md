@@ -56,7 +56,8 @@ host address when Docker runs on another machine:
 
 ```sh
 set -a
-. ./.env
+. ./.env.local
+[[ -f .env ]] && . ./.env
 set +a
 
 cat <<EOF | sudo tee -a /etc/hosts
@@ -71,7 +72,8 @@ Explicitly generate credentials, then prepare the network and TLS certificate be
 
 ```sh
 make secrets.init
-make setup
+make network
+make certs
 ```
 
 Start Traefik, Gitea, and the Registry:

@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-set -a
-. ./.env
-set +a
-
 backup_dir="backup/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "${backup_dir}"
 
