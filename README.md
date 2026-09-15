@@ -49,7 +49,7 @@ Create the ignored runtime environment file from the committed reference:
 make env
 ```
 
-The Makefile always loads tracked defaults from `.env.local` and optionally overrides them with `.env`. Docker Compose discovers `.env` automatically, so no explicit `--env-file` argument is needed.
+The Makefile always loads tracked defaults from `.env.local` and optionally overrides them with `.env`. Docker Compose discovers `.env` automatically.
 
 Add the service names to `/etc/hosts`. Replace `127.0.0.1` with the Docker
 host address when Docker runs on another machine:
