@@ -46,8 +46,10 @@ sudo sysctl -w fs.file-max=131072
 Create the ignored runtime environment file from the committed reference:
 
 ```sh
-cp .env.local .env
+make env
 ```
+
+The Makefile always loads tracked defaults from `.env.local` and optionally overrides them with `.env`. Docker Compose discovers `.env` automatically, so no explicit `--env-file` argument is needed.
 
 Add the service names to `/etc/hosts`. Replace `127.0.0.1` with the Docker
 host address when Docker runs on another machine:
@@ -110,8 +112,8 @@ Registry credentials and the SonarQube database password are stored in the ignor
 
 ## Configuration
 
-- Reference settings: `.env.local`
-- Runtime settings and generated credentials: `.env`
+- Tracked default/reference settings: `.env.local`
+- Optional runtime overrides and generated credentials: `.env`
 - Jenkins Configuration as Code: `etc/jenkins/jenkins.yaml`
 - Traefik static configuration: `etc/traefik/traefik.yaml`
 - Traefik TLS configuration: `etc/traefik/dynamic.yaml`

@@ -1,20 +1,18 @@
 .PHONY: help
 .DEFAULT_GOAL := help
 
-include .env
+include .env.local
+-include .env
 
 ENV ?= dev
 TAG ?= ${ENV}
 DOCKER_SHELL ?= bash
 
 dc_files = compose.traefik.yaml compose.gitea.yaml compose.registry.yaml compose.jenkins.yaml compose.sonarqube.yaml
-dc = docker compose --env-file .env $(foreach f,$(dc_files),-f $(f))
+dc = docker compose $(foreach f,$(dc_files),-f $(f))
 
 export ENV
 export TAG
-
-.env: .env.local
-	cp .env.local .env
 
 help h: ## Show help
 	@awk 'BEGIN {FS = ":.*##"} \
@@ -25,14 +23,15 @@ help h: ## Show help
 	/^##@/ {printf "\n%s\n", substr($$0,5)}' $(MAKEFILE_LIST)
 
 ##@ Setup
-env e: .env ## Create runtime environment file
+env e: ## Create runtime environment file
+	@test -f .env || cp .env.local .env
 
 setup se: network secrets.init certs ## Prepare local runtime files
 
 network n: ## Create CI/CD shared network
 	@docker network inspect $(CICD_NETWORK) >/dev/null 2>&1 || docker network create $(CICD_NETWORK)
 
-secrets.init si: ## Generate local credentials
+secrets.init si: env ## Generate local credentials
 	@mkdir -p secrets/jenkins secrets/registry
 	@grep -q '^SONAR_DB_PASSWORD=' .env || printf 'SONAR_DB_PASSWORD=%s\n' "$$(openssl rand -hex 24)" >> .env
 	@grep -q '^REGISTRY_USER=' .env || printf 'REGISTRY_USER=admin\n' >> .env
@@ -108,7 +107,7 @@ registry.login rl: secrets.init ## Log in to the Registry
 		docker login "$(REGISTRY_HOST)" --username "$$REGISTRY_USER" --password-stdin
 
 ##@ Maintenance
-backup ba: ## Back up persistent volumes
+backup ba: env ## Back up persistent volumes
 	bash sh/backup.sh
 
 restore re: ## Restore BACKUP=backup/YYYYMMDD-HHMMSS
