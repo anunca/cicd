@@ -44,7 +44,7 @@ help h: ## Show help
 	/^##@/ {printf "\n%s\n", substr($$0,5)}' $(MAKEFILE_LIST)
 
 ##@ Setup
-setup se: network secrets.init certs ## Prepare local runtime files
+setup se: network certs ## Prepare network and TLS certificate
 
 network n: ## Create CI/CD shared network
 	@docker network inspect $(CICD_NETWORK) >/dev/null 2>&1 || docker network create $(CICD_NETWORK)

@@ -67,9 +67,10 @@ cat <<EOF | sudo tee -a /etc/hosts
 EOF
 ```
 
-Explicitly prepare the network, generated credentials, and TLS certificate before starting services:
+Explicitly generate credentials, then prepare the network and TLS certificate before starting services:
 
 ```sh
+make secrets.init
 make setup
 ```
 
