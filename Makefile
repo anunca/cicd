@@ -13,6 +13,27 @@ dc = docker compose $(foreach f,$(dc_files),-f $(f))
 
 export ENV
 export TAG
+export COMPOSE_PROJECT_NAME
+export DOMAIN_NAME
+export CICD_NETWORK
+export TRAEFIK_VERSION
+export GITEA_VERSION
+export JENKINS_VERSION
+export DOCKER_VERSION
+export KUBECTL_VERSION
+export REGISTRY_VERSION
+export SONARQUBE_VERSION
+export POSTGRES_VERSION
+export GITEA_HOST
+export JENKINS_HOST
+export REGISTRY_HOST
+export SONARQUBE_HOST
+export JENKINS_ADMIN_ID
+export SONAR_DB_NAME
+export SONAR_DB_USER
+export SONAR_DB_PASSWORD
+export REGISTRY_USER
+export REGISTRY_PASSWORD
 
 help h: ## Show help
 	@awk 'BEGIN {FS = ":.*##"} \
@@ -23,15 +44,12 @@ help h: ## Show help
 	/^##@/ {printf "\n%s\n", substr($$0,5)}' $(MAKEFILE_LIST)
 
 ##@ Setup
-env e: ## Create runtime environment file
-	@test -f .env || cp .env.local .env
-
 setup se: network secrets.init certs ## Prepare local runtime files
 
 network n: ## Create CI/CD shared network
 	@docker network inspect $(CICD_NETWORK) >/dev/null 2>&1 || docker network create $(CICD_NETWORK)
 
-secrets.init si: env ## Generate local credentials
+secrets.init si: ## Generate local credentials
 	@mkdir -p secrets/jenkins secrets/registry
 	@grep -q '^SONAR_DB_PASSWORD=' .env || printf 'SONAR_DB_PASSWORD=%s\n' "$$(openssl rand -hex 24)" >> .env
 	@grep -q '^REGISTRY_USER=' .env || printf 'REGISTRY_USER=admin\n' >> .env
@@ -51,63 +69,63 @@ certs ce: ## Generate local TLS certificate
 			"$(DOMAIN_NAME)" "*.$(DOMAIN_NAME)"
 
 ##@ Docker
-config c: secrets.init ## Show configuration
+config c: ## Show configuration
 	$(dc) config
 
-validate v: secrets.init ## Validate configuration
+validate v: ## Validate configuration
 	$(dc) config --quiet
 
-build b: secrets.init ## Build images
+build b: ## Build images
 	$(dc) build
 
-pull p: secrets.init ## Pull images
+pull p: ## Pull images
 	$(dc) pull
 
-start s: setup ## Start core services
+start s: ## Start core services
 	$(dc) up -d traefik gitea registry
 
-start.all sa: setup ## Start all services
+start.all sa: ## Start all services
 	$(dc) up -d
 
-stop st: secrets.init ## Stop containers
+stop st: ## Stop containers
 	$(dc) down
 
 restart r: stop start ## Restart core services
 
-logs l: secrets.init ## Follow logs
+logs l: ## Follow logs
 	$(dc) logs -f
 
-ps: secrets.init ## List containers
+ps: ## List containers
 	$(dc) ps -a
 
 ##@ Jenkins
-jenkins.start js: setup ## Start Jenkins
+jenkins.start js: ## Start Jenkins
 	$(dc) up -d jenkins
 
-jenkins.shell jsh: secrets.init ## Open Jenkins shell
+jenkins.shell jsh: ## Open Jenkins shell
 	$(dc) exec jenkins $(DOCKER_SHELL)
 
-jenkins.logs jl: secrets.init ## Follow Jenkins logs
+jenkins.logs jl: ## Follow Jenkins logs
 	$(dc) logs -f jenkins
 
-jenkins.password jp: secrets.init ## Show initial Jenkins password
+jenkins.password jp: ## Show initial Jenkins password
 	@cat secrets/jenkins/admin_password
 
 ##@ SonarQube
-sonarqube.start ss: setup ## Start SonarQube
+sonarqube.start ss: ## Start SonarQube
 	$(dc) up -d sonarqube
 
-sonarqube.logs sl: secrets.init ## Follow SonarQube logs
+sonarqube.logs sl: ## Follow SonarQube logs
 	$(dc) logs -f sonarqube
 
 ##@ Registry
-registry.login rl: secrets.init ## Log in to the Registry
+registry.login rl: ## Log in to the Registry
 	@set -a; . ./.env; set +a; \
 		printf '%s' "$$REGISTRY_PASSWORD" | \
 		docker login "$(REGISTRY_HOST)" --username "$$REGISTRY_USER" --password-stdin
 
 ##@ Maintenance
-backup ba: env ## Back up persistent volumes
+backup ba: ## Back up persistent volumes
 	bash sh/backup.sh
 
 restore re: ## Restore BACKUP=backup/YYYYMMDD-HHMMSS

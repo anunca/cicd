@@ -43,13 +43,13 @@ sudo sysctl -w fs.file-max=131072
 
 ## Setup
 
-Create the ignored runtime environment file from the committed reference:
+Create the optional ignored runtime override file:
 
 ```sh
-make env
+touch .env
 ```
 
-The Makefile always loads tracked defaults from `.env.local` and optionally overrides them with `.env`. Docker Compose discovers `.env` automatically.
+The Makefile loads tracked defaults from `.env.local`, applies optional overrides from `.env`, and exports the resulting values to Docker Compose.
 
 Add the service names to `/etc/hosts`. Replace `127.0.0.1` with the Docker
 host address when Docker runs on another machine:
@@ -67,7 +67,7 @@ cat <<EOF | sudo tee -a /etc/hosts
 EOF
 ```
 
-Prepare the network, generated credentials, and TLS certificate:
+Explicitly prepare the network, generated credentials, and TLS certificate before starting services:
 
 ```sh
 make setup

@@ -3,7 +3,7 @@
 Runtime secrets are generated locally and are not committed.
 
 ```sh
-cp .env.local .env
+touch .env
 make secrets.init
 ```
 
