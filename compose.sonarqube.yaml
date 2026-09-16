@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${SONAR_DB_USER}
       POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD}
     volumes:
-      - sonarqube-db-data:/var/lib/postgresql/data
+      - sonarqube-db-data:/var/lib/postgresql
     networks:
       - sonarqube
     healthcheck:

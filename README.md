@@ -6,7 +6,7 @@ A self-hosted CI/CD lab assembled from concern-specific Docker Compose files.
 
 | Service | Started by default | Address |
 |---|---:|---|
-| Traefik | Yes | HTTPS reverse proxy |
+| Traefik | Yes | `https://traefik.app.internal` |
 | Gitea | Yes | `https://gitea.app.internal` |
 | Registry | Yes | `https://registry.app.internal` |
 | Jenkins | No | `https://jenkins.app.internal` |
@@ -61,9 +61,10 @@ set -a
 set +a
 
 cat <<EOF | sudo tee -a /etc/hosts
+127.0.0.1 ${TRAEFIK_HOST}
 127.0.0.1 ${GITEA_HOST}
-127.0.0.1 ${JENKINS_HOST}
 127.0.0.1 ${REGISTRY_HOST}
+127.0.0.1 ${JENKINS_HOST}
 127.0.0.1 ${SONARQUBE_HOST}
 EOF
 ```
@@ -71,7 +72,8 @@ EOF
 Explicitly generate credentials, then prepare the network and TLS certificate before starting services:
 
 ```sh
-make secrets.init
+make secrets.db
+make secrets.app
 make network
 make certs
 ```
@@ -117,9 +119,9 @@ Registry credentials and the SonarQube database password are stored in the ignor
 
 - Tracked default/reference settings: `.env.local`
 - Optional runtime overrides and generated credentials: `.env`
-- Jenkins Configuration as Code: `etc/jenkins/jenkins.yaml`
 - Traefik static configuration: `etc/traefik/traefik.yaml`
 - Traefik TLS configuration: `etc/traefik/dynamic.yaml`
+- Jenkins Configuration as Code: `etc/jenkins/jenkins.yaml`
 
 Validate the combined Compose model:
 
@@ -138,3 +140,16 @@ make restore BACKUP=backup/YYYYMMDD-HHMMSS
 
 The PostgreSQL archive in this lab is a filesystem-level backup. Use `pg_dump` for
 an application-consistent SonarQube backup while the database is running.
+
+## Notes
+Apps
+- Traefik [dashboard](https://traefik.app.internal/dashboard/)
+- [Gitea](https://gitea.app.internal)
+- [Registry](https://registry.app.internal)
+- [Jenkins](https://jenkins.app.internal)
+- [SonarQube](https://sonarqube.app.internal)
+
+Credentials
+- Registry admin|`cat secrets/registry/htpasswd|cut -d: -f2`
+- Jenkins admin|`cat secrets/jenkins/admin_password`
+- SonarQube admin|admin

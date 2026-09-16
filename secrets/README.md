@@ -4,7 +4,8 @@ Runtime secrets are generated locally and are not committed.
 
 ```sh
 touch .env
-make secrets.init
+make secrets.db
+make secrets.app
 ```
 
 Registry credentials and the SonarQube database password are stored in the ignored

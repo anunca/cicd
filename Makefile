@@ -4,18 +4,12 @@
 include .env.local
 -include .env
 
-ENV ?= dev
-TAG ?= ${ENV}
 DOCKER_SHELL ?= bash
 
-# dc_files = compose.traefik.yaml compose.gitea.yaml compose.registry.yaml compose.jenkins.yaml compose.sonarqube.yaml
-dc_files = compose.traefik.yaml compose.gitea.yaml compose.registry.yaml compose.jenkins.yaml
+dc_files = compose.traefik.yaml compose.gitea.yaml compose.registry.yaml compose.jenkins.yaml compose.sonarqube.yaml
 dc = docker compose $(foreach f,$(dc_files),-f $(f))
 
-# export ENV
-# export TAG
-# export COMPOSE_PROJECT_NAME
-# export DOMAIN_NAME
+export COMPOSE_PROJECT_NAME
 export CICD_NETWORK
 export TRAEFIK_VERSION
 export GITEA_VERSION
@@ -29,12 +23,13 @@ export GITEA_HOST
 export JENKINS_HOST
 export REGISTRY_HOST
 export SONARQUBE_HOST
+export GITEA_DB_NAME
+export GITEA_DB_USER
+export GITEA_DB_PASSWORD
 export JENKINS_ADMIN_ID
 export SONAR_DB_NAME
 export SONAR_DB_USER
 export SONAR_DB_PASSWORD
-# export REGISTRY_USER
-# export REGISTRY_PASSWORD
 
 define export-env
 set -a; \
@@ -52,10 +47,12 @@ help h: ## Show help
 	/^##@/ {printf "\n%s\n", substr($$0,5)}' $(MAKEFILE_LIST)
 
 ##@ Setup
-secrets.init si: ## Generate local credentials
-	@mkdir -p secrets/jenkins secrets/registry
+secrets.db sdb: ## Generate database passwords
+	@grep -q '^GITEA_DB_PASSWORD=' .env || printf 'GITEA_DB_PASSWORD=%s\n' "$$(openssl rand -hex 24)" >> .env
 	@grep -q '^SONAR_DB_PASSWORD=' .env || printf 'SONAR_DB_PASSWORD=%s\n' "$$(openssl rand -hex 24)" >> .env
-	@grep -q '^REGISTRY_USER=' .env || printf 'REGISTRY_USER=admin\n' >> .env
+
+secrets.app sa: ## Generate local credentials (Registry, Jenkins)
+	@mkdir -p secrets/registry secrets/jenkins
 	@grep -q '^REGISTRY_PASSWORD=' .env || printf 'REGISTRY_PASSWORD=%s\n' "$$(openssl rand -hex 24)" >> .env
 	@test -s secrets/jenkins/admin_password || openssl rand -base64 32 > secrets/jenkins/admin_password
 	@test -s secrets/registry/htpasswd || { \
@@ -90,7 +87,7 @@ pull p: ## Pull images
 start s: ## Start core services
 	$(dc) up -d traefik gitea registry
 
-start.all sa: ## Start all services
+start.all sall: ## Start all services
 	$(dc) up -d
 
 stop st: ## Stop containers

@@ -4,7 +4,7 @@ set -euo pipefail
 backup_dir="backup/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "${backup_dir}"
 
-project=${COMPOSE_PROJECT_NAME:-cicd}
+project=${COMPOSE_PROJECT_NAME}
 volumes=(
 "${project}_gitea-data"
 "${project}_registry-data"
