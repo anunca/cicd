@@ -81,9 +81,6 @@ validate v: ## Validate configuration
 build b: ## Build images
 	$(dc) build
 
-pull p: ## Pull images
-	$(dc) pull
-
 start s: ## Start core services
 	$(dc) up -d traefik gitea registry
 
