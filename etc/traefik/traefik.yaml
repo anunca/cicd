@@ -1,0 +1,31 @@
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    filename: /etc/traefik/dynamic.yaml
+    watch: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+  ssh:
+    address: ":22"
+
+api:
+  dashboard: true
+  insecure: false
+
+ping: {}
+
+log:
+  level: INFO
+
+accessLog: {}

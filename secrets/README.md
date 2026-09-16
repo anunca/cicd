@@ -1,0 +1,13 @@
+# Local secrets
+
+Runtime secrets are generated locally and are not committed.
+
+```sh
+touch .env
+make secrets.db
+make secrets.app
+```
+
+Registry credentials and the SonarQube database password are stored in the ignored
+`.env` file. The Jenkins password and Registry `htpasswd` file are mounted as
+Compose secrets.
