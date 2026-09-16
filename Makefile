@@ -91,7 +91,7 @@ start.all sall: ## Start all services
 	$(dc) up -d
 
 stop st: ## Stop containers
-	$(dc) down
+	$(dc) down -t0
 
 restart r: stop start ## Restart core services
 
@@ -102,7 +102,7 @@ ps: ## List containers
 	$(dc) ps -a
 
 clean: ## Remove containers and this lab's volumes
-	$(dc) down --volumes --remove-orphans
+	$(dc) down -t0 --volumes --remove-orphans
 
 ##@ Jenkins
 jenkins.start js: ## Start Jenkins
