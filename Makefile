@@ -4,32 +4,12 @@
 include .env.local
 -include .env
 
+export
+
 DOCKER_SHELL ?= bash
 
 dc_files = compose.traefik.yaml compose.gitea.yaml compose.registry.yaml compose.jenkins.yaml compose.sonarqube.yaml
 dc = docker compose $(foreach f,$(dc_files),-f $(f))
-
-export COMPOSE_PROJECT_NAME
-export CICD_NETWORK
-export TRAEFIK_VERSION
-export GITEA_VERSION
-export JENKINS_VERSION
-export DOCKER_VERSION
-export KUBECTL_VERSION
-export REGISTRY_VERSION
-export SONARQUBE_VERSION
-export POSTGRES_VERSION
-export GITEA_HOST
-export JENKINS_HOST
-export REGISTRY_HOST
-export SONARQUBE_HOST
-export GITEA_DB_NAME
-export GITEA_DB_USER
-export GITEA_DB_PASSWORD
-export JENKINS_ADMIN_ID
-export SONAR_DB_NAME
-export SONAR_DB_USER
-export SONAR_DB_PASSWORD
 
 define export-env
 set -a; \
