@@ -98,7 +98,7 @@ logs l: ## Follow logs
 ps: ## List containers
 	$(dc) ps -a
 
-clean: ## Remove containers and this lab's volumes
+clean: ## Remove containers and volumes
 	$(dc) down -t0 --volumes --remove-orphans
 
 ##@ Jenkins
