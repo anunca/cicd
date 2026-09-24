@@ -1,6 +1,6 @@
 services:
   sonarqube-db:
-    image: postgres:${POSTGRES_VERSION}
+    image: ${POSTGRES_IMAGE}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${SONAR_DB_NAME}
@@ -23,7 +23,7 @@ services:
         max-file: "3"
 
   sonarqube:
-    image: sonarqube:${SONARQUBE_VERSION}
+    image: ${SONARQUBE_IMAGE}
     restart: unless-stopped
     init: true
     environment:
