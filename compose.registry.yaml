@@ -1,6 +1,6 @@
 services:
   registry:
-    image: registry:${REGISTRY_VERSION}
+    image: ${REGISTRY_IMAGE}
     restart: unless-stopped
     init: true
     environment:
