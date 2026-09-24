@@ -1,6 +1,6 @@
 services:
   gitea-db:
-    image: postgres:${POSTGRES_VERSION}
+    image: ${POSTGRES_IMAGE}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${GITEA_DB_NAME}
@@ -23,7 +23,7 @@ services:
         max-file: "3"
 
   gitea:
-    image: gitea/gitea:${GITEA_VERSION}
+    image: ${GITEA_IMAGE}
     restart: unless-stopped
     init: true
     environment:
