@@ -1,6 +1,6 @@
 services:
   jenkins-docker:
-    image: docker:${DOCKER_VERSION}-dind
+    image: ${DOCKER_IMAGE}
     privileged: true
     restart: unless-stopped
     environment:
@@ -29,7 +29,7 @@ services:
         JENKINS_VERSION: ${JENKINS_VERSION}
         DOCKER_VERSION: ${DOCKER_VERSION}
         KUBECTL_VERSION: ${KUBECTL_VERSION}
-    image: cicd-jenkins:${JENKINS_VERSION}
+    image: ${JENKINS_IMAGE}
     restart: unless-stopped
     init: true
     environment:
