@@ -1,0 +1,73 @@
+services:
+  sonarqube-db:
+    image: ${POSTGRES_IMAGE}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SONAR_DB_NAME}
+      POSTGRES_USER: ${SONAR_DB_USER}
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD}
+    volumes:
+      - sonarqube-db-data:/var/lib/postgresql
+    networks:
+      - sonarqube
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SONAR_DB_USER} -d ${SONAR_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  sonarqube:
+    image: ${SONARQUBE_IMAGE}
+    restart: unless-stopped
+    init: true
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME}
+      SONAR_JDBC_USERNAME: ${SONAR_DB_USER}
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD}
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
+      - ./etc/sonarqube/sonar.properties:/opt/sonarqube/conf/sonar.properties:ro
+    networks:
+      - cicd
+      - sonarqube
+    depends_on:
+      sonarqube-db:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.sonarqube.rule: Host(`${SONARQUBE_HOST}`)
+      traefik.http.routers.sonarqube.entrypoints: websecure
+      traefik.http.routers.sonarqube.tls: "true"
+      traefik.http.services.sonarqube.loadbalancer.server.port: "9000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:9000/api/system/status >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  sonarqube-db-data:
+  sonarqube-data:
+  sonarqube-logs:
+  sonarqube-extensions:
+
+networks:
+  cicd:
+    external: true
+    name: ${CICD_NETWORK}
+  sonarqube:
+    internal: true

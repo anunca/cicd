@@ -1,0 +1,40 @@
+services:
+  registry:
+    image: ${REGISTRY_IMAGE}
+    restart: unless-stopped
+    init: true
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry
+      REGISTRY_AUTH_HTPASSWD_PATH: /run/secrets/registry_htpasswd
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    volumes:
+      - registry-data:/var/lib/registry
+    secrets:
+      - registry_htpasswd
+    networks:
+      - cicd
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.registry.rule: Host(`${REGISTRY_HOST}`)
+      traefik.http.routers.registry.entrypoints: websecure
+      traefik.http.routers.registry.tls: "true"
+      traefik.http.services.registry.loadbalancer.server.port: "5000"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  registry-data:
+
+networks:
+  cicd:
+    external: true
+    name: ${CICD_NETWORK}
+
+secrets:
+  registry_htpasswd:
+    file: ./secrets/registry/htpasswd

@@ -1,0 +1,27 @@
+ARG DOCKER_VERSION=29.7.2
+ARG JENKINS_VERSION=2.561-slim
+
+FROM docker:${DOCKER_VERSION}-cli AS docker-cli
+FROM jenkins/jenkins:${JENKINS_VERSION}
+
+ARG KUBECTL_VERSION=v1.37.0
+ARG TARGETARCH
+
+USER root
+
+COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
+
+RUN curl -fsSLo /usr/local/bin/kubectl \
+      "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" \
+    && curl -fsSLo /tmp/kubectl.sha256 \
+      "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl.sha256" \
+    && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum --check \
+    && chmod 0755 /usr/local/bin/kubectl \
+    && rm /tmp/kubectl.sha256
+
+COPY etc/jenkins/plugins.txt /usr/share/jenkins/ref/plugins.txt
+RUN jenkins-plugin-cli --plugin-file /usr/share/jenkins/ref/plugins.txt
+
+COPY etc/jenkins/jenkins.yaml /usr/local/jenkins/jenkins.yaml
+
+USER jenkins

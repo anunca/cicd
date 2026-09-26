@@ -1,0 +1,34 @@
+services:
+  traefik:
+    image: ${TRAEFIK_IMAGE}
+    restart: unless-stopped
+    init: true
+    command:
+      - --configFile=/etc/traefik/traefik.yaml
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2222:22"
+    volumes:
+      - ./etc/traefik/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./etc/traefik/dynamic.yaml:/etc/traefik/dynamic.yaml:ro
+      - ./certs:/etc/traefik/certs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - cicd
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  cicd:
+    external: true
+    name: ${CICD_NETWORK}
