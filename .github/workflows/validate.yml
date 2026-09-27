@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' dockerfiles < <(find . -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' -o -name '*.Dockerfile' \) -print0)
+          mapfile -d '' dockerfiles < <(find . -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) -print0)
           printf 'Linting %d Dockerfiles\n' "${#dockerfiles[@]}"
           (("${#dockerfiles[@]}" > 0)) || { echo "No Dockerfiles found"; exit 1; }
           docker run --rm -v "$PWD:/workspace" -w /workspace hadolint/hadolint:v2.15.1-alpine hadolint --config .hadolint.yaml "${dockerfiles[@]}"
