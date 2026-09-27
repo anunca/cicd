@@ -1,0 +1,5 @@
+failure-threshold: warning
+ignored:
+  - DL3008 # apt packages: base image repositories determine compatible versions
+  - DL3018 # apk packages: avoid brittle repository-specific version pins
+  - DL3033 # yum packages: avoid brittle repository-specific version pins
