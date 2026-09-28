@@ -6,6 +6,8 @@ include .env.local
 
 export
 
+ENV ?= dev
+TAG ?= ${ENV}
 DOCKER_SHELL ?= bash
 
 dc_files = compose.traefik.yaml compose.gitea.yaml compose.registry.yaml compose.jenkins.yaml compose.sonarqube.yaml
@@ -66,6 +68,12 @@ stop st: ## Stop containers
 	$(dc) down -t0
 
 restart r: stop start ## Restart core services
+
+run: ## Run shell
+	$(dc) run --rm --entrypoint $(DOCKER_SHELL) jenkins
+
+shell sh: ## Exec shell
+	$(dc) exec jenkins $(DOCKER_SHELL)
 
 logs l: ## Follow logs
 	$(dc) logs -f
